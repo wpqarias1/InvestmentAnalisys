@@ -2,39 +2,48 @@ from yahooquery import Ticker
 import json
 import time
 
-# Aquí pones las acciones que quieres vigilar
-mis_acciones = ['AAPL', 'MSFT', 'GOOGL', 'AMZN']
+# Lista actualizada con tus tickers de la imagen + los nuevos
+mis_acciones = [
+    'CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 
+    'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 
+    'ASML', 'CNXC'
+]
 
 def ejecutar_app():
     print("Iniciando consulta a Yahoo Finance...")
-    # 'Ticker' es la herramienta que habla con Yahoo
     t = Ticker(mis_acciones)
     
-    # Obtenemos los datos fundamentales
+    # Obtenemos datos de resumen y estadísticas clave
     ratios = t.summary_detail
+    price_data = t.price
     
     datos_finales = []
     
     for ticker in mis_acciones:
-        # Extraemos el P/E Ratio y el precio
+        # Extraemos la información de cada sección
         info = ratios.get(ticker, {})
+        p_info = price_data.get(ticker, {})
+        
+        # Datos que solicitaste y adicionales útiles
         pe = info.get('trailingPE', 'N/A')
-        precio = info.get('previousClose', 'N/A')
+        precio_actual = p_info.get('regularMarketPrice', 'N/A')
+        cambio_porcentaje = p_info.get('regularMarketChangePercent', 0) * 100
+        market_cap = info.get('marketCap', 'N/A')
         
         datos_finales.append({
             "ticker": ticker,
+            "precio": precio_actual,
+            "cambio_diario_%": round(cambio_porcentaje, 2),
             "pe_ratio": pe,
-            "precio": precio
+            "market_cap": market_cap
         })
         print(f"Datos de {ticker} obtenidos.")
-        # Esperamos 5 segundos entre cada uno para evitar bloqueos
-        time.sleep(5)
+        time.sleep(2) # Pausa breve para evitar bloqueos
 
-    # Guardamos todo en un archivo llamado data.json
     with open('data.json', 'w') as f:
         json.dump(datos_finales, f, indent=4)
     
-    print("¡Hecho! Los datos se guardaron en data.json")
+    print("¡Hecho! data.json actualizado.")
 
 if __name__ == "__main__":
     ejecutar_app()
