@@ -1,70 +1,48 @@
 from yahooquery import Ticker
 import json
 import time
-import requests
 
-# Tu lista de activos
-mis_activos = [
-    'CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 
-    'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 
-    'ASML', 'CNXC'
-]
+# Lista final de activos
+activos = ['CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 'ASML', 'CNXC']
 
-def ejecutar_app():
-    print("Iniciando conexión segura...")
-    
-    # Creamos una sesión que simula un navegador real
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    })
-
-    # Pasamos la sesión a Ticker
-    t = Ticker(mis_activos, session=session)
-    
-    print("Capturando módulos de Yahoo...")
-    summary = t.summary_detail
-    financials = t.financial_data
-    price_data = t.price
-    
-    datos_finales = []
-    
-    for ticker in mis_activos:
-        print(f"Analizando {ticker}...")
+def iniciar():
+    print("Conectando con Yahoo...")
+    try:
+        t = Ticker(activos, asynchronous=False)
         
-        # Validación de datos para evitar que el código se rompa
-        s = summary.get(ticker, {}) if isinstance(summary, dict) else {}
-        f = financials.get(ticker, {}) if isinstance(financials, dict) else {}
-        p = price_data.get(ticker, {}) if isinstance(price_data, dict) else {}
-
-        def a_pct(val):
-            if isinstance(val, (int, float)):
-                return f"{round(val * 100, 2)}%"
-            return "N/A"
-
-        reporte = {
-            "ticker": ticker,
-            "nombre": p.get('shortName', ticker),
-            "precio": p.get('regularMarketPrice', 'N/A'),
-            "P_E_Ratio": s.get('trailingPE', 'N/A'),
-            "ROE": a_pct(f.get('returnOnEquity')),
-            "Margen_Operativo": a_pct(f.get('operatingMargins')),
-            "Target_Price": f.get('targetMeanPrice', 'N/A'),
-            "Beta": s.get('beta', 'N/A'),
-            "Actualizado": time.strftime('%Y-%m-%d %H:%M')
-        }
+        # Obtenemos los datos
+        detalles = t.summary_detail
+        precios = t.price
+        finanzas = t.financial_data
         
-        datos_finales.append(reporte)
-        # Pausa obligatoria de 3 segundos entre activos
-        time.sleep(3)
+        resultado = []
+        
+        for ticker in activos:
+            d = detalles.get(ticker, {})
+            p = precios.get(ticker, {})
+            f = finanzas.get(ticker, {})
+            
+            # Formatear porcentajes de forma segura
+            def pct(v):
+                return f"{round(v * 100, 2)}%" if isinstance(v, (int, float)) else "N/A"
 
-    with open('data.json', 'w') as f_out:
-        json.dump(datos_finales, f_out, indent=4)
-    
-    print("¡Éxito! El archivo data.json ha sido actualizado.")
+            resultado.append({
+                "ticker": ticker,
+                "precio": p.get('regularMarketPrice', 'N/A'),
+                "P_E": d.get('trailingPE', 'N/A'),
+                "ROE": pct(f.get('returnOnEquity')),
+                "Margen_Op": pct(f.get('operatingMargins')),
+                "Target": f.get('targetMeanPrice', 'N/A'),
+                "Actualizado": time.strftime('%H:%M:%S')
+            })
+            print(f"OK: {ticker}")
+            time.sleep(1)
+
+        with open('data.json', 'w') as f_out:
+            json.dump(resultado, f_out, indent=4)
+            
+    except Exception as e:
+        print(f"Fallo: {e}")
 
 if __name__ == "__main__":
-    try:
-        ejecutar_app()
-    except Exception as e:
-        print(f"Error detectado: {e}")
+    iniciar()
