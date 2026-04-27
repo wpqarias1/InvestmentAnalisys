@@ -2,6 +2,7 @@ from yahooquery import Ticker
 import json
 import time
 
+# Tu lista completa de activos corregida
 mis_activos = [
     'CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 
     'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 
@@ -9,55 +10,50 @@ mis_activos = [
 ]
 
 def ejecutar_app():
-    print("Iniciando escaneo detallado...")
+    print("Iniciando escaneo completo...")
     t = Ticker(mis_activos)
     
-    # Módulos necesarios para las nuevas métricas
+    # Módulos de Yahoo para capturar ROE, Márgenes y Target Price
     summary = t.summary_detail
     financials = t.financial_data
     key_stats = t.key_stats
+    price_data = t.price
     
     datos_finales = []
     
     for ticker in mis_activos:
-        print(f"Obteniendo métricas de {ticker}...")
+        # Extraemos diccionarios de cada sección
+        s = summary.get(ticker, {})
+        f = financials.get(ticker, {})
+        k = key_stats.get(ticker, {})
+        p = price_data.get(ticker, {})
         
-        # Obtenemos diccionarios de datos (o vacíos si fallan)
-        s = summary.get(ticker, {}) if isinstance(summary, dict) else {}
-        f = financials.get(ticker, {}) if isinstance(financials, dict) else {}
-        k = key_stats.get(ticker, {}) if isinstance(key_stats, dict) else {}
-        
-        # Función auxiliar para redondear porcentajes de forma segura
-        def fmt_pct(valor):
-            return f"{round(valor * 100, 2)}%" if isinstance(valor, (int, float)) else "N/A"
+        # Función para dar formato a porcentajes de forma segura
+        def fmt_pct(val):
+            return f"{round(val * 100, 2)}%" if isinstance(val, (int, float)) else "N/A"
 
-        # Construcción del reporte con tus nuevas métricas
         datos_finales.append({
-            "ticker": ticker,
-            "precio": s.get('previousClose', 'N/A'),
-            # Métricas de Rentabilidad (Imagen 1)
+            "Ticker": ticker,
+            "Nombre": p.get('shortName', ticker),
+            "Precio_Actual": p.get('regularMarketPrice', 'N/A'),
+            "P_E_Ratio": s.get('trailingPE', 'N/A'),
             "ROE": fmt_pct(f.get('returnOnEquity')),
-            "ROIC": fmt_pct(f.get('returnOnAssets')), # Estimado vía ROA
+            "ROIC": fmt_pct(f.get('returnOnAssets')), # Estimado como ROA en Yahoo
             "Margen_Operativo": fmt_pct(f.get('operatingMargins')),
             "Margen_Neto": fmt_pct(f.get('profitMargins')),
-            # Métricas de Deuda y Riesgo (Imagen 2)
-            "Current_Ratio": s.get('currentRatio', 'N/A'),
+            "Target_Price": f.get('targetMeanPrice', 'N/A'),
             "Beta": s.get('beta', 'N/A'),
-            "P_E_Ratio": s.get('trailingPE', 'N/A'),
             "EPS_Diluido": k.get('trailingEps', 'N/A'),
-            "FCF": f.get('freeCashflow', 'N/A'),
-            "fecha": time.strftime('%Y-%m-%d')
+            "Fecha_Analisis": time.strftime('%Y-%m-%d')
         })
         
-        time.sleep(2) # Pausa para evitar bloqueos
+        print(f"Sincronizando {ticker}...")
+        time.sleep(3) # Seguridad anti-bloqueo
 
     with open('data.json', 'w') as archivo:
         json.dump(datos_finales, archivo, indent=4)
     
-    print("Proceso terminado exitosamente.")
+    print("Archivo data.json generado con éxito.")
 
 if __name__ == "__main__":
-    try:
-        ejecutar_app()
-    except Exception as e:
-        print(f"Error crítico: {e}")
+    ejecutar_app()
