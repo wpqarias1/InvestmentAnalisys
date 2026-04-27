@@ -1,8 +1,9 @@
 from yahooquery import Ticker
 import json
 import time
+import requests
 
-# Lista completa de tus activos
+# Tu lista de activos
 mis_activos = [
     'CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 
     'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 
@@ -10,10 +11,18 @@ mis_activos = [
 ]
 
 def ejecutar_app():
-    print("Iniciando escaneo de métricas fundamentales...")
-    t = Ticker(mis_activos)
+    print("Iniciando conexión segura...")
     
-    # Módulos de datos necesarios
+    # Creamos una sesión que simula un navegador real
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    })
+
+    # Pasamos la sesión a Ticker
+    t = Ticker(mis_activos, session=session)
+    
+    print("Capturando módulos de Yahoo...")
     summary = t.summary_detail
     financials = t.financial_data
     price_data = t.price
@@ -21,42 +30,41 @@ def ejecutar_app():
     datos_finales = []
     
     for ticker in mis_activos:
-        print(f"Procesando {ticker}...")
+        print(f"Analizando {ticker}...")
         
-        # Obtenemos diccionarios seguros
+        # Validación de datos para evitar que el código se rompa
         s = summary.get(ticker, {}) if isinstance(summary, dict) else {}
         f = financials.get(ticker, {}) if isinstance(financials, dict) else {}
         p = price_data.get(ticker, {}) if isinstance(price_data, dict) else {}
 
-        # Función para convertir decimales a porcentaje (ej: 0.15 -> 15.0%)
         def a_pct(val):
             if isinstance(val, (int, float)):
                 return f"{round(val * 100, 2)}%"
             return "N/A"
 
-        # Construimos el diccionario con las métricas de tus imágenes
         reporte = {
             "ticker": ticker,
             "nombre": p.get('shortName', ticker),
             "precio": p.get('regularMarketPrice', 'N/A'),
             "P_E_Ratio": s.get('trailingPE', 'N/A'),
             "ROE": a_pct(f.get('returnOnEquity')),
-            "ROIC_estimado": a_pct(f.get('returnOnAssets')), # ROA como aproximación
             "Margen_Operativo": a_pct(f.get('operatingMargins')),
-            "Margen_Neto": a_pct(f.get('profitMargins')),
             "Target_Price": f.get('targetMeanPrice', 'N/A'),
             "Beta": s.get('beta', 'N/A'),
-            "Actualizado": time.strftime('%Y-%m-%d %H:%M:%S')
+            "Actualizado": time.strftime('%Y-%m-%d %H:%M')
         }
         
         datos_finales.append(reporte)
-        time.sleep(2) # Pausa para no ser bloqueado
+        # Pausa obligatoria de 3 segundos entre activos
+        time.sleep(3)
 
-    # Guardar resultados
     with open('data.json', 'w') as f_out:
         json.dump(datos_finales, f_out, indent=4)
     
-    print("¡Proceso completado con éxito!")
+    print("¡Éxito! El archivo data.json ha sido actualizado.")
 
 if __name__ == "__main__":
-    ejecutar_app()
+    try:
+        ejecutar_app()
+    except Exception as e:
+        print(f"Error detectado: {e}")
