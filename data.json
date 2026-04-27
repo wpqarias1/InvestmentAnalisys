@@ -1,0 +1,22 @@
+[
+    {
+        "ticker": "AAPL",
+        "pe_ratio": 34.35488,
+        "precio": 273.43
+    },
+    {
+        "ticker": "MSFT",
+        "pe_ratio": 26.58735,
+        "precio": 415.77
+    },
+    {
+        "ticker": "GOOGL",
+        "pe_ratio": 31.859388,
+        "precio": 338.88998
+    },
+    {
+        "ticker": "AMZN",
+        "pe_ratio": 36.76741,
+        "precio": 255.07999
+    }
+]
