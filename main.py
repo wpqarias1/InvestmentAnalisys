@@ -2,48 +2,54 @@ from yahooquery import Ticker
 import json
 import time
 
-# Lista actualizada con tus tickers de la imagen + los nuevos
-mis_acciones = [
+# Tu lista completa de seguimiento
+mis_activos = [
     'CSPX.L', 'BTC-USD', 'BAC', 'COPX', 'URNU', 
     'MSFT', 'PLTR', 'TSM', 'ASTS', 'HIMS', 
     'ASML', 'CNXC'
 ]
 
-def ejecutar_app():
-    print("Iniciando consulta a Yahoo Finance...")
-    t = Ticker(mis_acciones)
+def ejecutar_analisis():
+    print("Iniciando escaneo de mercado...")
+    t = Ticker(mis_activos)
     
-    # Obtenemos datos de resumen y estadísticas clave
-    ratios = t.summary_detail
+    # Extraemos los módulos necesarios
+    # summary_detail: P/E Ratio, Market Cap
+    # financial_data: Target Price (Precio objetivo)
+    # price: Precios actuales y nombres
+    summary = t.summary_detail
+    financials = t.financial_data
     price_data = t.price
     
     datos_finales = []
     
-    for ticker in mis_acciones:
-        # Extraemos la información de cada sección
-        info = ratios.get(ticker, {})
+    for ticker in mis_activos:
+        s_info = summary.get(ticker, {})
+        f_info = financials.get(ticker, {})
         p_info = price_data.get(ticker, {})
         
-        # Datos que solicitaste y adicionales útiles
-        pe = info.get('trailingPE', 'N/A')
-        precio_actual = p_info.get('regularMarketPrice', 'N/A')
-        cambio_porcentaje = p_info.get('regularMarketChangePercent', 0) * 100
-        market_cap = info.get('marketCap', 'N/A')
-        
+        # Procesamos la información
         datos_finales.append({
             "ticker": ticker,
-            "precio": precio_actual,
-            "cambio_diario_%": round(cambio_porcentaje, 2),
-            "pe_ratio": pe,
-            "market_cap": market_cap
+            "nombre": p_info.get('shortName', ticker),
+            "precio_actual": p_info.get('regularMarketPrice', 'N/A'),
+            # Datos de origen trimestral:
+            "pe_ratio": s_info.get('trailingPE', 'N/A'),
+            "market_cap": s_info.get('marketCap', 'N/A'),
+            # Datos de analistas:
+            "target_price": f_info.get('targetMeanPrice', 'N/A'),
+            "fecha_revision": time.strftime('%Y-%m-%d')
         })
-        print(f"Datos de {ticker} obtenidos.")
-        time.sleep(2) # Pausa breve para evitar bloqueos
+        
+        print(f"Sincronizando {ticker}...")
+        # Pausa de seguridad para evitar bloqueos de IP en GitHub
+        time.sleep(2)
 
+    # Guardamos el resultado
     with open('data.json', 'w') as f:
         json.dump(datos_finales, f, indent=4)
     
-    print("¡Hecho! data.json actualizado.")
+    print("¡Éxito! Archivo data.json actualizado.")
 
 if __name__ == "__main__":
-    ejecutar_app()
+    ejecutar_analisis()
