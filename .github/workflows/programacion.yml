@@ -1,0 +1,34 @@
+name: Actualizacion Diaria de Datos
+
+on:
+  schedule:
+    # Esto corre todos los días a las 8:00 AM hora de Colombia (13:00 UTC)
+    - cron: '0 13 * * *'
+  # Este botón permite que tú mismo lo corras cuando quieras para probar
+  workflow_dispatch:
+
+jobs:
+  ejecutar_script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar mi codigo
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar herramientas (librerias)
+        run: pip install -r requirements.txt
+
+      - name: Correr el analisis de Yahoo
+        run: python main.py
+
+      - name: Guardar los resultados en el repositorio
+        run: |
+          git config --global user.name 'Robot-Financiero'
+          git config --global user.email 'robot@github.com'
+          git add data.json
+          git commit -m "Actualizacion automatica: $(date)" || exit 0
+          git push
