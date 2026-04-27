@@ -1,2 +1,2 @@
 yahooquery
-pandas
+requests
